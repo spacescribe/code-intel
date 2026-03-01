@@ -11,6 +11,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", required=True, help="Path to repository")
     parser.add_argument("--impact", help="Find functions impacted by given function name")
+    parser.add_argument("--rank", action="store_true", help="Rank critical functions")
 
     args = parser.parse_args()
 
@@ -21,6 +22,16 @@ def main():
         user=os.getenv("NEO4J_USER"),
         password=os.getenv("NEO4J_PASSWORD"),
     )
+
+    if args.rank:
+        ranking = neo4j.get_global_risk()
+        print("\n📊 Critical Function Ranking:\n")
+
+        for entry in ranking:
+            risk = neo4j.calculate_global_risk(entry)
+            print(f"{entry['name']} → Dependents: {entry['total_dependents']}, Depth: {entry['depth']}, Risk: {risk}")
+
+        return
 
     # 🔥 If impact flag is provided, just query impact
     if args.impact:
