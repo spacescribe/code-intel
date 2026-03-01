@@ -23,6 +23,8 @@ def main():
         password=os.getenv("NEO4J_PASSWORD"),
     )
 
+    llm = LLMService()
+
     if args.rank:
         ranking = neo4j.get_global_risk()
         print("\n📊 Critical Function Ranking:\n")
@@ -42,11 +44,17 @@ def main():
         if not impact:
             print("No dependent functions found.")
         else:
-            for f in impact:
-                print(f"- {f['name']} (depth: {f['depth']})")
-
             risk = neo4j.calculate_risk(impact)
             print(f"\n🔥 Risk Score: {risk}")
+
+            explanation = llm.explain_impact(
+                function_name=args.impact,
+                impact_data=impact,
+                risk_score=risk
+            )
+
+            print("\n🧠 AI Explanation:\n")
+            print(explanation)
 
         neo4j.close()
         return
@@ -60,8 +68,6 @@ def main():
         print(f"Function: {func['function_name']}")
         print(f"Calls: {func['calls']}")
         print("-" * 40)
-
-    llm = LLMService()
 
     print("\nGenerating AI summaries...\n")
 
