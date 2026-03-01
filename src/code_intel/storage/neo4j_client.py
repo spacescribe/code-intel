@@ -45,8 +45,26 @@ class Neo4jClient:
     @staticmethod
     def _impact_query(tx, function_name):
         query = """
-        MATCH (f:Function {name: $name})<-[:CALLS*]-(dependent)
-        RETURN DISTINCT dependent.name AS name
+        MATCH (f:Function {name: $name})
+        MATCH path = (dependent:Function)-[:CALLS*1..]->(f)
+        RETURN dependent.name AS name,
+            min(length(path)) AS depth
+        ORDER BY depth
         """
-        result = tx.run(query, name = function_name)
-        return [record["name"] for record in result]
+        result = tx.run(query, name=function_name)
+        return [
+            {"name": record["name"], "depth": record["depth"]}
+            for record in result
+        ]
+    
+    def calculate_risk(self, impact_data):
+        if not impact_data:
+            return 0
+
+        direct = sum(1 for f in impact_data if f["depth"] == 1)
+        indirect = sum(1 for f in impact_data if f["depth"] > 1)
+        max_depth = max(f["depth"] for f in impact_data)
+
+        risk_score = (direct * 3) + (indirect * 2) + (max_depth * 2)
+
+        return risk_score

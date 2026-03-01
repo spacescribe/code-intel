@@ -3,8 +3,9 @@ import os
 
 class LLMService:
     def __init__(self):
+        base_url = os.getenv("OPENROUTER_BASE_URL") or os.getenv("KIRO_BASE_URL")
         self.client = OpenAI(
-            base_url=os.getenv("OPENROUTER_BASE_URL"),
+            base_url=base_url,
             api_key=os.getenv("OPENROUTER_API_KEY")
         )
 

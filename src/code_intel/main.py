@@ -24,15 +24,18 @@ def main():
 
     # 🔥 If impact flag is provided, just query impact
     if args.impact:
-        impacted = neo4j.get_impact(args.impact)
+        impact = neo4j.get_impact(args.impact)
 
         print(f"\nFunctions impacted by changes to '{args.impact}':\n")
 
-        if impacted:
-            for name in impacted:
-                print(f"- {name}")
-        else:
+        if not impact:
             print("No dependent functions found.")
+        else:
+            for f in impact:
+                print(f"- {f['name']} (depth: {f['depth']})")
+
+            risk = neo4j.calculate_risk(impact)
+            print(f"\n🔥 Risk Score: {risk}")
 
         neo4j.close()
         return
