@@ -102,3 +102,14 @@ class Neo4jClient:
     
     def calculate_global_risk(self, entry):
         return (entry["total_dependents"] * 3) + (entry["depth"] * 2)
+    
+    def get_dead_code(self):
+        query = """
+        MATCH (f:Function)
+        WHERE NOT (()-[:CALLS]->(f))
+        AND f.name <> 'main'
+        RETURN f.name as name
+        """
+
+        results = self.driver.session().run(query)
+        return [record["name"] for record in results]

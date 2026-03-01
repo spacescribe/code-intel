@@ -12,6 +12,7 @@ def main():
     parser.add_argument("--repo", required=True, help="Path to repository")
     parser.add_argument("--impact", help="Find functions impacted by given function name")
     parser.add_argument("--rank", action="store_true", help="Rank critical functions")
+    parser.add_argument("--dead-code", action="store_true")
 
     args = parser.parse_args()
 
@@ -24,6 +25,18 @@ def main():
     )
 
     llm = LLMService()
+
+    if args.dead_code:
+        dead_functions = neo4j.get_dead_code()
+
+        if dead_functions:
+            print("\n🧹 Dead Code Detected:\n")
+            for func in dead_functions:
+                print(f"- {func}")
+        else:
+            print("\n✅ No dead code found.")
+        
+        return
 
     if args.rank:
         ranking = neo4j.get_global_risk()
