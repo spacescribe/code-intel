@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from code_intel.parser.python_parser import parse_repo
 from code_intel.storage.neo4j_client import Neo4jClient
 from code_intel.llm.llm_service import LLMService
+from code_intel.memory.chroma_service import ChromaService
 
 
 def main():
@@ -13,6 +14,7 @@ def main():
     parser.add_argument("--impact", help="Find functions impacted by given function name")
     parser.add_argument("--rank", action="store_true", help="Rank critical functions")
     parser.add_argument("--dead-code", action="store_true")
+    parser.add_argument("--ask", type=str)
 
     args = parser.parse_args()
 
@@ -25,6 +27,34 @@ def main():
     )
 
     llm = LLMService()
+    memory = ChromaService()
+
+    if args.ask:
+        relevant_docs = memory.query(args.ask)
+
+        context = "\n".join(relevant_docs)
+
+        prompt = f"""
+        You are analyzing a Python codebase.
+
+        Relevant function summaries:
+        {context}
+
+        Question:
+        {args.ask}
+
+        Answer concisely and technically.
+        """
+
+        response = llm.client.chat.completions.create(
+            model="anthropic/claude-opus-4.6",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2,
+        )
+
+        print("\n🧠 Answer:\n")
+        print(response.choices[0].message.content.strip())
+        return
 
     if args.dead_code:
         dead_functions = neo4j.get_dead_code()
@@ -86,6 +116,7 @@ def main():
 
     for func in results:
         summary = llm.summarize_function(func["source"])
+        memory.store_function_summary(func['function_name'], summary)
         func["summary"] = summary
         print(f"Summary for {func['function_name']}: {summary}")
 
