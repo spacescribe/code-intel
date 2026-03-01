@@ -6,6 +6,8 @@ from code_intel.parser.python_parser import parse_repo
 from code_intel.storage.neo4j_client import Neo4jClient
 from code_intel.llm.llm_service import LLMService
 from code_intel.memory.chroma_service import ChromaService
+from code_intel.agent.simple_agent import SimpleAgent
+from code_intel.agent.tools import ToolRegistry
 
 
 def main():
@@ -15,6 +17,7 @@ def main():
     parser.add_argument("--rank", action="store_true", help="Rank critical functions")
     parser.add_argument("--dead-code", action="store_true")
     parser.add_argument("--ask", type=str)
+    parser.add_argument("--agent", type=str)
 
     args = parser.parse_args()
 
@@ -28,6 +31,14 @@ def main():
 
     llm = LLMService()
     memory = ChromaService()
+    tools = ToolRegistry(neo4j, memory, llm)
+
+    if args.agent:
+        agent = SimpleAgent(llm, tools)
+        result = agent.run(args.agent)
+        print("\n🤖 Final Answer:\n")
+        print(result)
+        return
 
     if args.ask:
         relevant_docs = memory.query(args.ask)
